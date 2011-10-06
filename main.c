@@ -75,9 +75,9 @@ __interrupt void Port_1(void)
 P1OUT |=0x1; //sets P1.0 high
 P1IFG &= ~0x08; // P1.3 IFG cleared
 a = readStatusReg(CS, RDSR);
-wrtiePageLoc(12, 0x88, CS);
+wrtiePageLoc(0, 0x88, CS);
 sleep(10000);
-membyte = readPageMemLoc(12,CS);
+membyte = readPageMemLoc(0,CS);
 //membyte = readPageMemLoc(1,CS);
 //membyte = readPageMemLoc(2,CS);
 //membyte = readPageMemLoc(3,CS);
