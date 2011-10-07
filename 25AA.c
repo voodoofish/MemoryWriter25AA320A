@@ -25,12 +25,9 @@ void wrtiePageLoc(int loc, unsigned char writebyte, unsigned char pin) {
 enablePin(pin);
 spiTx(WREN); //init the write enable
 disablePin(pin);
-delay(1);
-readStatusReg(pin, RDSR);
 enablePin(pin);
 spiTx(WRITE); //send write command.
 spiTxINT(loc); //send location
 spiTx(writebyte);//send databyte
-readStatusReg(pin, RDSR);
 disablePin(pin);
 }

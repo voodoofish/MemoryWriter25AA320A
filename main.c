@@ -62,8 +62,6 @@ WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
 	spiInit(); //get things going
 	spiStop();	//set spi to inactive.
 	spiStart();
-	//spiInit();
-	//enable();
 _BIS_SR(LPM0_bits + GIE); // Enter LPM0 w/interrupt
 }
 
@@ -75,23 +73,15 @@ __interrupt void Port_1(void)
 P1OUT |=0x1; //sets P1.0 high
 P1IFG &= ~0x08; // P1.3 IFG cleared
 a = readStatusReg(CS, RDSR);
-wrtiePageLoc(0, 0x88, CS);
-sleep(10000);
+wrtiePageLoc(0, 0x89, CS);
+while(readStatusReg(CS, RDSR)&0x01==0x01)
+{};
+//sleep(10000);
 membyte = readPageMemLoc(0,CS);
-//membyte = readPageMemLoc(1,CS);
-//membyte = readPageMemLoc(2,CS);
-//membyte = readPageMemLoc(3,CS);
+
 P1OUT &= ~0x1; //Turn off P1.0
 }
 
-/*
-#pragma vector=USI_VECTOR
-__interrupt void usi_dosomething(void){
-	P1OUT |=0x01;
-	delay(10);
-	P1OUT &= ~0x01;
-}
-*/
 #pragma vector=USI_VECTOR
 __interrupt void usi_interrupt(void)
 {
