@@ -21,6 +21,11 @@
 #define CS BIT4
 volatile unsigned char  a = 0;
 volatile unsigned char membyte = 0;
+long temp;
+long IntDegF;
+//long IntDegC;
+volatile unsigned char loopVar = 1; //Set to 1 so that we don't start doing mem readings
+volatile unsigned int memCounter = 0;
 /*Sequence for read
  * 1. cs goes low
  * 2. 8bit read instruction-->16bit location-->8bit data
@@ -33,6 +38,19 @@ volatile unsigned char membyte = 0;
  * 4. 8bit write command 16bit address, 8 bit data.
  * 5. cs goes high or continue to write.
 */
+
+//Adding the WD timer as we will be using the TimerA for SoftSerial 
+void WD_intervalTimerInit(void)
+{
+  WDTCTL = WDT_ADLY_1000;                    // WDT 250ms, ACLK, interval timer
+  IE1 |= WDTIE;                             // Enable WDT interrupt
+}
+void WD_ITimerStartStop(unsigned char command)//puts wd interval timer into a halted state
+{
+
+WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
+}
+/*
 void timer_init(void)//copied from user FJ604 MAX6957 code
 {
     TACTL = TASSEL_2 | MC_0;        // SMCLK, stop timer
@@ -46,7 +64,7 @@ void sleep(unsigned int count)//copied from user FJ604 MAX6957 code
     _low_power_mode_0();        // Sleep in LPM0 until interrupt
     TACTL &= ~MC_1;             // Stop timer
 }
-
+*/
 void main(void){
 WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
 	//set up pin 3 button to trigger action.
@@ -58,11 +76,20 @@ WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
 	//put break point here
 	P1OUT &= ~0x1; //Set P1.0.
 	P1DIR |= 0x1; // Set P1.0.
-	timer_init();
+//	timer_init(); //turned off since I commented out the code
+	ADC10CTL1 = INCH_10 + ADC10DIV_3;         // Temp Sensor ADC10CLK/4
+  	ADC10CTL0 = SREF_1 + ADC10SHT_3 + REFON + ADC10ON + ADC10IE;
+	//WD_intervalTimerInit();//give some warmup time of 250ms 
 	spiInit(); //get things going
 	spiStop();	//set spi to inactive.
 	spiStart();
-_BIS_SR(LPM0_bits + GIE); // Enter LPM0 w/interrupt
+	while(1){
+		if (loopVar==0) {
+			ADC10CTL0 |= ENC + ADC10SC;
+			loopVar++;
+			} // Sampling and conversion start
+		_BIS_SR(LPM0_bits + GIE); // Enter LPM0 w/interrupt
+    	}
 }
 
 //put interupt here.
@@ -70,17 +97,19 @@ _BIS_SR(LPM0_bits + GIE); // Enter LPM0 w/interrupt
 #pragma vector=PORT1_VECTOR
 __interrupt void Port_1(void)
 {
+	WD_intervalTimerInit();
+	loopVar = 0;
+/*
 P1OUT |=0x1; //sets P1.0 high
 P1IFG &= ~0x08; // P1.3 IFG cleared
 a = readStatusReg(CS, RDSR);
-wrtiePageLoc(0, 0x89, CS);
+wrtiePageLoc(1, 0x66, CS);
 while(readStatusReg(CS, RDSR)&0x01==0x01)
 {};
 //sleep(10000);
-membyte = readPageMemLoc(0,CS);
-
+membyte = readPageMemLoc(1,CS);
 P1OUT &= ~0x1; //Turn off P1.0
-}
+*/}
 
 #pragma vector=USI_VECTOR
 __interrupt void usi_interrupt(void)
@@ -88,9 +117,35 @@ __interrupt void usi_interrupt(void)
     USICTL1 &= ~USIIFG;             // Clear interrupt flag
     _low_power_mode_off_on_exit();  // Return from LPM
 }
-
+/*
 #pragma vector=TIMERA0_VECTOR
 __interrupt void timer_A_interrupt(void)
 {
     _low_power_mode_off_on_exit();  // Return from LPM
+}
+*/
+#pragma vector=WDT_VECTOR
+__interrupt void watchdog_timer(void)
+{	//WDTCTL = WDT_ADLY_1000;  //now set to 1s interval
+ 	loopVar = 0;
+ 	_low_power_mode_off_on_exit();
+}
+
+#pragma vector=ADC10_VECTOR
+__interrupt void adc10_tempGetter(void)
+{if (memCounter > MAXMEM)
+	{WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
+	}
+else{
+    temp = ADC10MEM;
+    IntDegF = ((temp - 630) * 761) / 1024;
+	P1OUT |=0x1; //sets P1.0 high
+	P1IFG &= ~0x08; // P1.3 IFG cleared
+	wrtiePageLoc(memCounter, IntDegF, CS);
+	while(readStatusReg(CS, RDSR)&0x01==0x01)
+	{}; //keep looping until register no longer shows write active.
+	membyte = readPageMemLoc(1,CS);
+	P1OUT &= ~0x1; //Turn off P1.0
+	memCounter++;
+	}
 }
