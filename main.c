@@ -98,7 +98,8 @@ WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
 __interrupt void Port_1(void)
 {
 	WD_intervalTimerInit();
-	loopVar = 0;
+	//loopVar = 0;
+	P1IFG &= ~0x08; // P1.3 IFG cleared
 /*
 P1OUT |=0x1; //sets P1.0 high
 P1IFG &= ~0x08; // P1.3 IFG cleared
@@ -141,9 +142,9 @@ else{
     IntDegF = ((temp - 630) * 761) / 1024;
 	P1OUT |=0x1; //sets P1.0 high
 	P1IFG &= ~0x08; // P1.3 IFG cleared
-	wrtiePageLoc(memCounter, IntDegF, CS);
-	while(readStatusReg(CS, RDSR)&0x01==0x01)
-	{}; //keep looping until register no longer shows write active.
+//	wrtiePageLoc(memCounter, IntDegF, CS);
+//	while(readStatusReg(CS, RDSR)&0x01==0x01)
+//	{}; //keep looping until register no longer shows write active.
 	membyte = readPageMemLoc(1,CS);
 	P1OUT &= ~0x1; //Turn off P1.0
 	memCounter++;
