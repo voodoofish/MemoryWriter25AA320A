@@ -19,8 +19,9 @@
 #define WRSR	0x01
 
 //other deinfes for the chip
-#define MAXPAGE 128
-#define MAXPAGESIZE 32
+#define MAXPAGE 127 //128 pages 0-127
+#define MAXPAGESIZE 31 //32 bytes 0-31
+#define MAXMEM 4095 //4096 bytes total
 
 //these should go into their own header files.
 int findPageStart(int page);
