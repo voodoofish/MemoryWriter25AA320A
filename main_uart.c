@@ -16,7 +16,7 @@
 #include "msp430g2231.h"
 #include "spi.h"
 #include "25AA.h"
-//#include "ta_uart.h"
+
 
 #define LED1 BIT0
 #define CS BIT4
@@ -26,7 +26,19 @@ long temp;
 long IntDegF;
 volatile unsigned char loopVar = 1; //Set to 1 so that we don't start doing mem readings
 volatile unsigned int memCounter = 0;
-//int callBack( unsigned char c );
+void getCommand(char command);
+char c;
+// Functions in serial.asm (this really should be in a header file)
+void serial_setup(unsigned out_mask, unsigned in_mask, unsigned duration);
+void putc(unsigned);
+void puts(char *);
+unsigned getc(void);
+unsigned getcInt(void);
+void Green_Off(void);
+void Green_On(void);
+void All_Off(void);
+
+
 /*Sequence for read
  * 1. cs goes low
  * 2. 8bit read instruction-->16bit location-->8bit data
@@ -52,8 +64,16 @@ void WD_ITimerStartStop(unsigned char command)//puts wd interval timer into a ha
 WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
 }
 
+void getCommand(char command){
+
+}
+
 void main(void){
 WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
+	// Use 1 MHz DCO factory calibration
+	DCOCTL = 0;
+	BCSCTL1 = CALBC1_1MHZ;
+	DCOCTL = CALDCO_1MHZ;
 	//set up pin 3 button to trigger action.
 	P1IE = 0x08; // P1.3 interrupt enabled
 	P1IES |= 0x08; // P1.3 Hi/lo edge
@@ -63,14 +83,15 @@ WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
 	//put break point here
 	P1OUT &= ~0x1; //Set P1.0.
 	P1DIR |= 0x1; // Set P1.0.
-//	timer_init(); //turned off since I commented out the code
+
 	ADC10CTL1 = INCH_10 + ADC10DIV_3;         // Temp Sensor ADC10CLK/4
   	ADC10CTL0 = SREF_1 + ADC10SHT_3 + REFON + ADC10ON + ADC10IE;
 	//WD_intervalTimerInit();//give some warmup time of 250ms 
 	spiInit(); //get things going
 	spiStop();	//set spi to inactive.
 	spiStart();
-//	TI_initTimer(callBack, _1MHz_SMCLK_02400_Bitime, TASSEL_0);
+	//Set up serial
+	serial_setup(BIT1, BIT2, 1000000 / 9600);
 	while(1){
 		if (loopVar==0) {
 			ADC10CTL0 |= ENC + ADC10SC;
@@ -85,20 +106,28 @@ WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
 #pragma vector=PORT1_VECTOR
 __interrupt void Port_1(void)
 {
-	WD_intervalTimerInit();
+	   c = getc();     // Get a char
+	switch(c)
+	{
+	case 'a' :
+		putc(c);
+		Green_On();
+		membyte = readPageMemLoc(1,CS);
+		puts("\r\nData: ");
+		putc(membyte);
+		break;
+	case 'b' :
+		putc(c);
+		Green_Off();
+		break;
+	default :
+		putc(c);
+		All_Off();
+	}
+	//WD_intervalTimerInit();
 	//loopVar = 0;
 	P1IFG &= ~0x08; // P1.3 IFG cleared
-/*
-P1OUT |=0x1; //sets P1.0 high
-P1IFG &= ~0x08; // P1.3 IFG cleared
-a = readStatusReg(CS, RDSR);
-wrtiePageLoc(1, 0x66, CS);
-while(readStatusReg(CS, RDSR)&0x01==0x01)
-{};
-//sleep(10000);
-membyte = readPageMemLoc(1,CS);
-P1OUT &= ~0x1; //Turn off P1.0
-*/}
+}
 
 #pragma vector=USI_VECTOR
 __interrupt void usi_interrupt(void)
@@ -106,13 +135,7 @@ __interrupt void usi_interrupt(void)
     USICTL1 &= ~USIIFG;             // Clear interrupt flag
     _low_power_mode_off_on_exit();  // Return from LPM
 }
-/*
-#pragma vector=TIMERA0_VECTOR
-__interrupt void timer_A_interrupt(void)
-{
-    _low_power_mode_off_on_exit();  // Return from LPM
-}
-*/
+
 #pragma vector=WDT_VECTOR
 __interrupt void watchdog_timer(void)
 {	//WDTCTL = WDT_ADLY_1000;  //now set to 1s interval
@@ -134,16 +157,7 @@ else{
 	while(readStatusReg(CS, RDSR)&0x01==0x01)
 	{}; //keep looping until register no longer shows write active.
 //	membyte = readPageMemLoc(1,CS);
-//    TI_TX_Byte( IntDegF );
 	P1OUT &= ~0x1; //Turn off P1.0
 	memCounter++;
 	}
 }
-/*
-int callBack( unsigned char c )
-{
-TI_TA_UART_StatusFlags &= ~TI_TA_RX_RECEIVED; // allows for RX during TX
-TI_TX_Byte( c ); // echo byte
-return TA_UART_STAY_LPM; // return to LPM3
-}
-*/
