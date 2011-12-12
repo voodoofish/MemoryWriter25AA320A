@@ -10,10 +10,9 @@
             .def    putc                ; void putc(unsigned c);
             .def    puts                ; void puts(char *s);
             .def    getc                ; unsigned getc(void);
-            .def	getcInt				;
-            .def	Green_On			;
-            .def	Green_Off			;
-            .def	All_Off				;
+;            .def	Red_On	     		;
+;            .def	Red_Off 			;
+;            .def	All_Off				;
                                         ;
                                         ;
 serial_setup                            ; - Setup serial I/O bitmasks and bit duration (32 minimum)
@@ -31,8 +30,8 @@ serial_setup                            ; - Setup serial I/O bitmasks and bit du
             sub     #32, R12            ; Adjust count for loop overhead
             mov     R12, &half_dur      ; Save half bit duration
             							; Added by mark to allow for LED fun!
-            bis.b   #01000001b,&P1DIR   ; make P1.0 and P1.6 output
-            jmp		All_Off             ; all others are inputs by default
+;            jmp		Red_Off             ; all others are inputs by default
+;            bis.b   #00000001b,&P1DIR   ; make P1.0 and P1.6 output
             ret                         ; Return
                                         ;
                                         ; - Send a single char
@@ -80,11 +79,6 @@ getc                                    ; - Get a char
             mov     &in_bit_mask, R13   ; Input bitmask
             mov     #0x01FF, R12        ; 9 bits - 8 data + stop
 
-getcInt									;
-			mov		&bit_dur, R14       ; Bit duration
-            mov     &in_bit_mask, R13   ; Input bitmask
-            mov     #0x01FF, R12        ; 9 bits - 8 data + stop
-            jmp		rx_start
 rx_start                                ; Wait for start bit
             mov     &P1IN, R15          ; Get serial input         
             and     R13, R15            ; Mask and test bit
@@ -112,12 +106,10 @@ rx_delay    nop                         ; Bit delay
             ret                         ; Return with rx char and start bit in R12, stop bit in carry
                                         ;
                                         ; Added by Mark
-Green_On    bic.b   #00000001b,&P1OUT   ; clear P1.0 (red off)
-            bis.b   #01000000b,&P1OUT   ; set P1.6 (green on)
-			ret							;
-Green_Off   bis.b   #00000001b,&P1OUT   ; set P1.0 (red on)
-            bic.b   #01000000b,&P1OUT   ; clear P1.6 (green off)
-			ret
-All_Off   	bic.b   #01000001b,&P1OUT   ; clear P1.6 and p1.0            
-            ret						;
+;Red_On      bis.b   #00000001b,&P1OUT   ; clear P1.0 (red off)
+;            ret							;
+;Red_Off     bic.b   #00000001b,&P1OUT   ; clear P1.6 (green off)
+;			ret
+;All_Off   	bic.b   #01000001b,&P1OUT   ; clear P1.6 and p1.0            
+;            ret						;
             .end                        ;

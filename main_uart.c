@@ -27,16 +27,16 @@ long IntDegF;
 volatile unsigned char loopVar = 1; //Set to 1 so that we don't start doing mem readings
 volatile unsigned int memCounter = 0;
 void getCommand(char command);
-char c;
+volatile unsigned char c;
 // Functions in serial.asm (this really should be in a header file)
 void serial_setup(unsigned out_mask, unsigned in_mask, unsigned duration);
 void putc(unsigned);
 void puts(char *);
 unsigned getc(void);
-unsigned getcInt(void);
-void Green_Off(void);
-void Green_On(void);
-void All_Off(void);
+
+//void Red_Off(void);
+//void Red_On(void);
+//void All_Off(void);
 
 
 /*Sequence for read
@@ -81,23 +81,46 @@ WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
 	P1DIR |= CS; //set chip select to output
 	disablePin(CS); //bring chip select high
 	//put break point here
-	P1OUT &= ~0x1; //Set P1.0.
-	P1DIR |= 0x1; // Set P1.0.
+//	P1OUT &= ~0x1; //Set P1.0.
+//	P1DIR |= 0x1; // Set P1.0.
+	//This is set in the port1 vector interupt now.
+	//ADC10CTL1 = INCH_10 + ADC10DIV_3;         // Temp Sensor ADC10CLK/4
+  	//ADC10CTL0 = SREF_1 + ADC10SHT_3 + REFON + ADC10ON + ADC10IE;
 
-	ADC10CTL1 = INCH_10 + ADC10DIV_3;         // Temp Sensor ADC10CLK/4
-  	ADC10CTL0 = SREF_1 + ADC10SHT_3 + REFON + ADC10ON + ADC10IE;
 	//WD_intervalTimerInit();//give some warmup time of 250ms 
 	spiInit(); //get things going
 	spiStop();	//set spi to inactive.
 	spiStart();
 	//Set up serial
 	serial_setup(BIT1, BIT2, 1000000 / 9600);
-	while(1){
+	puts("\r\nDevice ready, press button to start...\r\n ");
+while(1){
 		if (loopVar==0) {
 			ADC10CTL0 |= ENC + ADC10SC;
 			loopVar++;
 			} // Sampling and conversion start
-		_BIS_SR(LPM0_bits + GIE); // Enter LPM0 w/interrupt
+		else{
+			switch(c)
+	{
+	case 'a' :
+		putc(c);
+	//	Red_On();
+		membyte = readPageMemLoc(1,CS);
+		//puts("\r\nData: ");
+		putc(membyte);
+		break;
+	case 'b' :
+		putc(c);
+	ADC10CTL1 = INCH_10 + ADC10DIV_3;         // Temp Sensor ADC10CLK/4
+  	ADC10CTL0 = SREF_1 + ADC10SHT_3 + REFON + ADC10ON + ADC10IE;
+	//	Red_Off();
+		break;
+	default :
+	//	All_Off();
+	}
+
+		}
+		_BIS_SR(LPM0_bits+ GIE); // Enter LPM0 w/interrupt
     	}
 }
 
@@ -106,27 +129,16 @@ WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
 #pragma vector=PORT1_VECTOR
 __interrupt void Port_1(void)
 {
-	   c = getc();     // Get a char
-	switch(c)
-	{
-	case 'a' :
-		putc(c);
-		Green_On();
-		membyte = readPageMemLoc(1,CS);
-		puts("\r\nData: ");
-		putc(membyte);
-		break;
-	case 'b' :
-		putc(c);
-		Green_Off();
-		break;
-	default :
-		putc(c);
-		All_Off();
-	}
+	__disable_interrupt();
+	//should I disable all interrupts here?	
+	puts("\r\nChose an option:a,b\r\n ");
+    c = getc();     // Get a char
+	//putc(c);
 	//WD_intervalTimerInit();
 	//loopVar = 0;
 	P1IFG &= ~0x08; // P1.3 IFG cleared
+	 __enable_interrupt(); 
+	 _low_power_mode_off_on_exit();
 }
 
 #pragma vector=USI_VECTOR
@@ -151,13 +163,13 @@ __interrupt void adc10_tempGetter(void)
 else{
     temp = ADC10MEM;
     IntDegF = ((temp - 630) * 761) / 1024;
-	P1OUT |=0x1; //sets P1.0 high
+//	P1OUT |=0x1; //sets P1.0 high
 	P1IFG &= ~0x08; // P1.3 IFG cleared
 	wrtiePageLoc(memCounter, IntDegF, CS);
 	while(readStatusReg(CS, RDSR)&0x01==0x01)
 	{}; //keep looping until register no longer shows write active.
 //	membyte = readPageMemLoc(1,CS);
-	P1OUT &= ~0x1; //Turn off P1.0
+//	P1OUT &= ~0x1; //Turn off P1.0
 	memCounter++;
 	}
 }
