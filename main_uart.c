@@ -24,7 +24,7 @@ volatile unsigned char  a = 0;
 volatile unsigned char membyte = 0;
 long temp;
 long IntDegF;
-volatile unsigned char loopVar = 1; //Set to 1 so that we don't start doing mem readings
+char loopVar = 1; //Set to 1 so that we don't start doing mem readings
 volatile unsigned int memCounter = 0;
 void getCommand(char command);
 volatile unsigned char c;
@@ -34,9 +34,9 @@ void putc(unsigned);
 void puts(char *);
 unsigned getc(void);
 
-//void Red_Off(void);
-//void Red_On(void);
-//void All_Off(void);
+void Red_Off(void);
+void Red_On(void);
+void All_Off(void);
 
 
 /*Sequence for read
@@ -81,13 +81,13 @@ WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
 	P1DIR |= CS; //set chip select to output
 	disablePin(CS); //bring chip select high
 	//put break point here
-//	P1OUT &= ~0x1; //Set P1.0.
-//	P1DIR |= 0x1; // Set P1.0.
+	P1OUT &= ~0x1; //Set P1.0.
+	P1DIR |= 0x1; // Set P1.0.
 	//This is set in the port1 vector interupt now.
 	//ADC10CTL1 = INCH_10 + ADC10DIV_3;         // Temp Sensor ADC10CLK/4
   	//ADC10CTL0 = SREF_1 + ADC10SHT_3 + REFON + ADC10ON + ADC10IE;
 
-	//WD_intervalTimerInit();//give some warmup time of 250ms 
+	WD_intervalTimerInit();//give some warmup time of 250ms 
 	spiInit(); //get things going
 	spiStop();	//set spi to inactive.
 	spiStart();
@@ -100,23 +100,26 @@ while(1){
 			loopVar++;
 			} // Sampling and conversion start
 		else{
+			puts("\r\nChose an option:a,b\r\n ");
+			c = getc();     // Get a char
 			switch(c)
 	{
 	case 'a' :
 		putc(c);
-	//	Red_On();
+		Red_On();
 		membyte = readPageMemLoc(1,CS);
-		//puts("\r\nData: ");
+		puts("\r\nData: ");
+	//membyte = 82;
 		putc(membyte);
 		break;
 	case 'b' :
 		putc(c);
 	ADC10CTL1 = INCH_10 + ADC10DIV_3;         // Temp Sensor ADC10CLK/4
   	ADC10CTL0 = SREF_1 + ADC10SHT_3 + REFON + ADC10ON + ADC10IE;
-	//	Red_Off();
+		Red_Off();
 		break;
 	default :
-	//	All_Off();
+		All_Off();
 	}
 
 		}
@@ -129,15 +132,13 @@ while(1){
 #pragma vector=PORT1_VECTOR
 __interrupt void Port_1(void)
 {
-	__disable_interrupt();
+//	__disable_interrupt();
 	//should I disable all interrupts here?	
-	puts("\r\nChose an option:a,b\r\n ");
-    c = getc();     // Get a char
 	//putc(c);
 	//WD_intervalTimerInit();
 	//loopVar = 0;
 	P1IFG &= ~0x08; // P1.3 IFG cleared
-	 __enable_interrupt(); 
+//	 __enable_interrupt(); 
 	 _low_power_mode_off_on_exit();
 }
 
