@@ -28,9 +28,9 @@ int findPageStart(int page);
 int findPageMemLoc(int page, int loc);
 void writeEn(void);
 void writePageMem(int page);
-void wrtiePageLoc(int loc, unsigned char writebyte, unsigned char pin); //get this from findPageMemLoc() 
+void wrtiePageLoc(int loc, unsigned char writebyte, unsigned char pin, unsigned char port); //get this from findPageMemLoc() 
 int readPageMem(int page);
-unsigned char readPageMemLoc(int loc, unsigned char pin);
-unsigned char readStatusReg(unsigned char pin, unsigned char command);
+unsigned char readPageMemLoc(int loc, unsigned char pin, unsigned char port);
+unsigned char readStatusReg(unsigned char pin, unsigned char port, unsigned char command);
 
 #endif /*mem25AA*/

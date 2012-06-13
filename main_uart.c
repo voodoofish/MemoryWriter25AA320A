@@ -19,7 +19,14 @@
   
 
 #define LED1 BIT0
-#define CS BIT4
+//for use with CS on port pin 1
+//#define CS BIT4
+//#define MYPORT 1
+
+//for use with CS on port pin 2
+#define CS BIT6 //using p2.6
+#define MYPORT 2
+
 //volatile unsigned char  a = 0;
 volatile unsigned char membyte = 0;
 long temp = 0;      
@@ -37,6 +44,8 @@ unsigned getc(void);
 
 void Red_Off(void);
 void Red_On(void);
+void Green2_Off(void);
+void Green2_On(void);
 void All_Off(void);
 
 
@@ -79,8 +88,11 @@ WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
 	P1IE = 0x08; // P1.3 interrupt enabled
   	P1IES |= 0x08; // P1.3 Hi/lo edge
   	P1IFG &= ~0x08; // P1.3 IFG cleared
-	P1DIR |= CS; //set chip select to output
-	disablePin(CS); //bring chip select high
+	P2SEL &= ~(CS|BIT7);	//set both 2.6 and 2.7 to IO function
+	P2OUT &= ~BIT7;
+	P2DIR |= (CS|BIT7); //set chip select to output
+	
+	disablePin(CS, MYPORT); //bring chip select high
 	//put break point here
 	P1OUT &= ~0x1; //Set P1.0.
 	P1DIR |= 0x1; // Set P1.0.
@@ -112,11 +124,13 @@ else{
 		int count;
 		for(count =0;count<MAXMEM;count++ ){
 		Red_On();
-		membyte = readPageMemLoc(count,CS);
+		Green2_On();
+		membyte = readPageMemLoc(count,CS,MYPORT);
 		puts("\r\nData: ");
 		//membyte = 82;
 		putc(membyte);
 		Red_Off();
+		Green2_Off();
 		}
 		
 		break;
@@ -175,10 +189,10 @@ else{
     IntDegF = ((temp - 630) * 761) / 1024;
 //	P1OUT |=0x1; //sets P1.0 high
 	P1IFG &= ~0x08; // P1.3 IFG cleared
-	wrtiePageLoc(memCounter, IntDegF, CS);
-	while(readStatusReg(CS, RDSR)&0x01==0x01)
+	wrtiePageLoc(memCounter, IntDegF, CS ,MYPORT);
+	while(readStatusReg(CS, MYPORT, RDSR)&0x01==0x01)
 	{}; //keep looping until register no longer shows write active.
-//	membyte = readPageMemLoc(1,CS);
+//	membyte = readPageMemLoc(1,CS, MYPORT);
 //	P1OUT &= ~0x1; //Turn off P1.0
 	memCounter++;
 	}

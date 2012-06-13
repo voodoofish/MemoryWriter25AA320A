@@ -56,15 +56,24 @@ USICNT = 8;
 return 	USISRL;
 }
 
-void enablePin(unsigned char bits)
+void enablePin(unsigned char bits,unsigned char ports)
 {
-	P1OUT &= ~bits;
+	if (ports ==1){
+	P1OUT &= ~bits;}
+	else if(ports ==2){
+	P2OUT &= ~bits;}
+	else {P1OUT &= ~bits;}
 }
  
-void disablePin(unsigned char bits)
+void disablePin(unsigned char bits,unsigned char ports)
 {
-  P1OUT |= bits;
+  if (ports ==1){
+  P1OUT |= bits;}
+  else if(ports ==2){
+  P2OUT |= bits;}
+  else{P1OUT |= bits;}
 }
+
 void delay(unsigned int ms)
 {
  while (ms--)

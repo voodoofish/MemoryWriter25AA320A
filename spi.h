@@ -19,7 +19,7 @@ void spiStop(void);
 void spiTx(unsigned char c);
 void spiTxINT(unsigned int i);
 unsigned char spiRx();
-void enablePin( unsigned char bits );
-void disablePin( unsigned char bits );
+void enablePin( unsigned char bits,unsigned char ports );
+void disablePin( unsigned char bits, unsigned char ports );
 void delay(unsigned int ms);
 #endif
