@@ -16,18 +16,19 @@
 #include "msp430g2231.h"
 #include "spi.h"
 #include "25AA.h"
-
+  
 
 #define LED1 BIT0
 #define CS BIT4
-volatile unsigned char  a = 0;
+//volatile unsigned char  a = 0;
 volatile unsigned char membyte = 0;
-long temp;
-long IntDegF;
+long temp = 0;      
+long IntDegF = 0;
 char loopVar = 1; //Set to 1 so that we don't start doing mem readings
-volatile unsigned int memCounter = 0;
-void getCommand(char command);
-volatile unsigned char c;
+volatile unsigned char c=0;//This will cause a memory issue if it's after memCounter...not sure why.
+int memCounter = 0;
+//void getCommand(char command);
+
 // Functions in serial.asm (this really should be in a header file)
 void serial_setup(unsigned out_mask, unsigned in_mask, unsigned duration);
 void putc(unsigned);
@@ -63,11 +64,11 @@ void WD_ITimerStartStop(unsigned char command)//puts wd interval timer into a ha
 {
 WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
 }
-
+/*
 void getCommand(char command){
 
 }
-
+*/
 void main(void){
 WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
 	// Use 1 MHz DCO factory calibration
@@ -76,8 +77,8 @@ WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
 	DCOCTL = CALDCO_1MHZ;
 	//set up pin 3 button to trigger action.
 	P1IE = 0x08; // P1.3 interrupt enabled
-	P1IES |= 0x08; // P1.3 Hi/lo edge
-	P1IFG &= ~0x08; // P1.3 IFG cleared
+  	P1IES |= 0x08; // P1.3 Hi/lo edge
+  	P1IFG &= ~0x08; // P1.3 IFG cleared
 	P1DIR |= CS; //set chip select to output
 	disablePin(CS); //bring chip select high
 	//put break point here
@@ -87,35 +88,42 @@ WDTCTL = WDTPW + WDTHOLD; // Stop watchdog timer
 	//ADC10CTL1 = INCH_10 + ADC10DIV_3;         // Temp Sensor ADC10CLK/4
   	//ADC10CTL0 = SREF_1 + ADC10SHT_3 + REFON + ADC10ON + ADC10IE;
 
-	WD_intervalTimerInit();//give some warmup time of 250ms 
+	//WD_intervalTimerInit();//give some warmup time of 250ms 
 	spiInit(); //get things going
 	spiStop();	//set spi to inactive.
 	spiStart();
 	//Set up serial
 	serial_setup(BIT1, BIT2, 1000000 / 9600);
-	puts("\r\nDevice ready, press button to start...\r\n ");
+	//puts("\r\nDevice ready, press button to start...\r\n ");
 while(1){
-		if (loopVar==0) {
-			ADC10CTL0 |= ENC + ADC10SC;
-			loopVar++;
-			} // Sampling and conversion start
-		else{
-			puts("\r\nChose an option:a,b\r\n ");
-			c = getc();     // Get a char
-			switch(c)
+if (loopVar==0) {
+	ADC10CTL0 |= ENC + ADC10SC;
+	loopVar++;
+	} // Sampling and conversion start
+else{
+	puts("\r\nChose an option:a,b\r\n ");
+	c = getc();     // Get a char
+	switch(c)
 	{
 	case 'a' :
 		putc(c);
+		//Red_On();
+		
+		int count;
+		for(count =0;count<MAXMEM;count++ ){
 		Red_On();
-		membyte = readPageMemLoc(1,CS);
+		membyte = readPageMemLoc(count,CS);
 		puts("\r\nData: ");
-	//membyte = 82;
+		//membyte = 82;
 		putc(membyte);
+		Red_Off();
+		}
+		
 		break;
 	case 'b' :
 		putc(c);
-	ADC10CTL1 = INCH_10 + ADC10DIV_3;         // Temp Sensor ADC10CLK/4
-  	ADC10CTL0 = SREF_1 + ADC10SHT_3 + REFON + ADC10ON + ADC10IE;
+		ADC10CTL1 = INCH_10 + ADC10DIV_3;         // Temp Sensor ADC10CLK/4
+  		ADC10CTL0 = SREF_1 + ADC10SHT_3 + REFON + ADC10ON + ADC10IE;
 		Red_Off();
 		break;
 	default :
@@ -124,6 +132,7 @@ while(1){
 
 		}
 		_BIS_SR(LPM0_bits+ GIE); // Enter LPM0 w/interrupt
+		
     	}
 }
 
