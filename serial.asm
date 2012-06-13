@@ -12,6 +12,8 @@
             .def    getc                ; unsigned getc(void);
             .def	Red_On	     		;
             .def	Red_Off 			;
+            .def	Green2_On     		;
+            .def	Green2_Off 			;            
             .def	All_Off				;
                                         ;
                                         ;
@@ -106,10 +108,15 @@ rx_delay    nop                         ; Bit delay
             ret                         ; Return with rx char and start bit in R12, stop bit in carry
                                         ;
                                         ; Added by Mark
-Red_On      bis.b   #00000001b,&P1OUT   ; clear P1.0 (red off)
+Red_On      bis.b   #00000001b,&P1OUT   ; clear P1.0 (red on)
             ret							;
 Red_Off     bic.b   #00000001b,&P1OUT   ; clear P1.6 (green off)
 			ret
 All_Off   	bic.b   #01000001b,&P1OUT   ; clear P1.6 and p1.0            
             ret						;
+Green2_On   bis.b   #10000000b,&P2OUT   ; clear P2.7 (green oon)
+            ret							;
+Green2_Off  bic.b   #10000000b,&P2OUT   ; clear P2.7 (green oon)
+            ret							;
+
             .end                        ;
