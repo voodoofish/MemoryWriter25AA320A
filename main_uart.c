@@ -126,7 +126,7 @@ else{
 		Red_On();
 		Green2_On();
 		membyte = readPageMemLoc(count,CS,MYPORT);
-		puts("\r\nData: ");
+		puts("\r\nA: ");
 		//membyte = 82;
 		putc(membyte);
 		Red_Off();
@@ -197,3 +197,4 @@ else{
 	memCounter++;
 	}
 }
+
